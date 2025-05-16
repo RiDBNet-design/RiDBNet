@@ -40,7 +40,7 @@ def parse_args():
                         help='scheduler for training')
     parser.add_argument('--use_normals', action='store_true', default=True, 
                         help='use normals')
-    parser.add_argument('--seed', type=int, default=42, metavar='S',
+    parser.add_argument('--seed', type=int, default=0, metavar='S',
                         help='random seed (default: 1)')
     return parser.parse_args()
 
@@ -76,12 +76,6 @@ def test(model, loader,args, num_class=40):
     return in_average, cla_average
 
 def main(args):
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(args.seed)
-
     def log_string(str):
         logger.info(str)
         print(str)

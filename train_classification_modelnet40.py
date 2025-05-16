@@ -53,15 +53,11 @@ def parse_args():
                         help='use normals')
     parser.add_argument('--process_data', action='store_true', default=True, 
                         help='save data offline')
-    parser.add_argument('--use_uniform_sample', action='store_true', default=True, 
+    parser.add_argument('--use_uniform_sample', action='store_true', default=False, 
                         help='use uniform sampiling')
     parser.add_argument('--scheduler', type=str, default='Consine', 
                         help='scheduler for training')
-    parser.add_argument('--num_workers', type=int, default=10, 
-                        help='num_of_workers')
-    parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
-                        help='SGD momentum (default: 0.9)')
-    parser.add_argument('--seed', type=int, default=25241, metavar='S',
+    parser.add_argument('--seed', type=int, default=0, metavar='S',
                         help='random seed (default: 1)')
     return parser.parse_args()
 
@@ -102,12 +98,6 @@ def test(model, loader, num_class=40):
 
 import random
 def main(args):
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(args.seed)
-
     def log_string(str):
         logger.info(str)
         print(str)
