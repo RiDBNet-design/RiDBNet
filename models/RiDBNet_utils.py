@@ -8,7 +8,7 @@ from pointnet2_batch import pointnet2_cuda
 from typing import Tuple
 from torch.autograd import Function
 
-# 用于在给定的点集 x 中找到每个点的 K 个最近邻
+
 def knn(x, k):
     inner = -2*torch.matmul(x.transpose(2, 1), x)
     xx = torch.sum(x**2, dim=1, keepdim=True)
@@ -26,30 +26,25 @@ def pc_normalize(pc):
     return pc
 
 
-# 图特征   原本的
-def get_graph_feature(x, k=20, idx=None):  # [4,3,1024]  
+def get_graph_feature(x, k=20, idx=None): 
     batch_size = x.size(0)
     num_points = x.size(2)
     x = x.view(batch_size, -1, num_points)
     if idx is None:
-        idx = knn(x, k=k)   # (batch_size, num_points, k) [4,1024,20]
+        idx = knn(x, k=k)   # (batch_size, num_points, k)
     device = torch.device('cuda')
-    # 创建一个基础索引，用于将每个批次的索引映射到全局索引。这个操作将批次的索引扩展到每个点的位置
     idx_base = torch.arange(0, batch_size, device=device).view(-1, 1, 1)*num_points
-    # 将基础索引加到最近邻的索引上，以获得全局索引
-    idx = idx + idx_base # [4,1024,20]
+    idx = idx + idx_base 
 
-    idx = idx.view(-1)# [4*1024*20]
+    idx = idx.view(-1)
 
     _, num_dims, _ = x.size()
 
-    x = x.transpose(2, 1).contiguous()   # [4,1024,3](batch_size, num_points, num_dims)  -> (batch_size*num_points, num_dims) #   batch_size * num_points * k + range(0, batch_size*num_points)
-    feature = x.view(batch_size*num_points, -1)[idx, :]    # 根据全局索引提取 K 个最近邻的特征  [81920,3]
-    feature = feature.view(batch_size, num_points, k, num_dims)  # [4,1024,20,3]
-    x = x.view(batch_size, num_points, 1, num_dims).repeat(1, 1, k, 1) # [4,1024,20,3]
-    # 将每个点的特征与其最近邻的特征进行合并。这里 feature - x 表示相对位置，而 x 表示原始位置
-    feature = torch.cat((feature-x, x), dim=3).contiguous() # [4,6,1024,20]
-    #  [4,1024,20,3]-[4,1024,20,3]   
+    x = x.transpose(2, 1).contiguous()   #(batch_size, num_points, num_dims)  -> (batch_size*num_points, num_dims) #   batch_size * num_points * k + range(0, batch_size*num_points)
+    feature = x.view(batch_size*num_points, -1)[idx, :]
+    feature = feature.view(batch_size, num_points, k, num_dims)
+    x = x.view(batch_size, num_points, 1, num_dims).repeat(1, 1, k, 1)
+    feature = torch.cat((feature-x, x), dim=3).contiguous()
     return feature
 
 
@@ -77,7 +72,7 @@ def grouping(x, k=20, idx=None):
 
 
 
-# 获取激活函数类型
+
 def get_activation(activation):
     if activation.lower() == 'gelu':
         return nn.GELU()
@@ -272,27 +267,27 @@ class PointsetGrouper_formal(nn.Module):
             self.affine_beta = nn.Parameter(torch.zeros([1, 1, 1, channel + add_channel]))
         self.ballquery = QueryAndGroup(self.radi, self.kneighbors)
 
-    def forward(self, xyz, points): # [16,1024,3]  [16,1024,32] 
+    def forward(self, xyz, points):
         points = points.transpose(2,1)
-        B, N, C = points.shape  # [16,1024,64]
+        B, N, C = points.shape
         S = xyz.shape[1]//self.reduce
         xyz = xyz.contiguous()
-        fps_idx = furthest_point_sample(xyz, S).long() # [16,512]
+        fps_idx = furthest_point_sample(xyz, S).long()
         new_xyz = index_points(xyz, fps_idx)
         new_points = index_points(points, fps_idx)
 
-        grouped_xyz, grouped_points = self.ballquery(query_xyz=new_xyz, support_xyz=xyz, features=points.transpose(1,2).contiguous()) # [16,3,512,20] [16,64,512,20]
-        grouped_xyz = grouped_xyz.permute(0, 2, 3, 1).contiguous()  # [16,512,20,3]
-        grouped_points = grouped_points.permute(0, 2, 3, 1).contiguous()    # [16,512,20,64]
+        grouped_xyz, grouped_points = self.ballquery(query_xyz=new_xyz, support_xyz=xyz, features=points.transpose(1,2).contiguous())
+        grouped_xyz = grouped_xyz.permute(0, 2, 3, 1).contiguous()
+        grouped_points = grouped_points.permute(0, 2, 3, 1).contiguous()
 
         if self.normalize is not None:
             if self.normalize =="center":
-                mean = torch.mean(grouped_points, dim=2, keepdim=True) # [16,512,1,64]
+                mean = torch.mean(grouped_points, dim=2, keepdim=True)
             if self.normalize =="anchor":
                 mean = new_points
                 mean = mean.unsqueeze(dim=-2)
-            grouped_points = (grouped_points-mean)   # [16,512,20,64]
-            grouped_points = self.affine_alpha*grouped_points + self.affine_beta  # [16,512,20,64]
+            grouped_points = (grouped_points-mean)
+            grouped_points = self.affine_alpha*grouped_points + self.affine_beta
         return new_xyz, grouped_points
 
     
@@ -310,7 +305,6 @@ class T_net(nn.Module):
     
     def forward(self, x):
         B = x.shape[0]
-        # --- 中心化处理 ---
         # mean = x.mean(dim=1, keepdim=True)
         # x_centered = x - mean
         x = self.relu(self.fc1(x.transpose(2, 1)))  # [B, 1024, 64]
@@ -319,7 +313,6 @@ class T_net(nn.Module):
         x = self.relu(self.fc3(x))
         x = self.tanh(self.fc4(x)).view(B, 3, 3)
 
-        # --- L2 正则化：在输入矩阵上添加 εI ---
         epsilon = 1e-6
         I = torch.eye(3).to(x.device)
         x_reg = x + epsilon * I  
@@ -327,14 +320,13 @@ class T_net(nn.Module):
         q, r = torch.linalg.qr(x_reg)
         return q, r
 
-# 最远点采样代替上面随机采样
 def knn_sample_xyz_normal(xyz,normal,n_sample): 
     '''
     b,n,c  ->   b,n,c
     '''
     xyz = xyz.contiguous()
     normal = normal.contiguous()
-    fps_idx = furthest_point_sample(xyz, n_sample).long() # [16,512]
+    fps_idx = furthest_point_sample(xyz, n_sample).long()
     new_xyz = index_points(xyz, fps_idx)
     new_normal = index_points(normal, fps_idx)
     return new_xyz, new_normal
@@ -354,37 +346,37 @@ class RiDBNetSetAbstraction(nn.Module):
         self.n_sample = n_sample
         self.feature_fusion = feature_fusion_cls(out_c,embed_channel,out_channel,gp)
     def forward(self, x_global, group_points,x_local, normal_local,feature):
-        ''' [16,1024,3] [16,6,1024] [16,1024,3] [16,1024,3] [16,64,1024]
-        x_global:b,n,c 16,1024,3  16,1024,3
-        group_points   16,3,1024  16,6,1024
-        x_local:b,c,n  16,1024,3  16,1024,3
-        normal_local   16,1024,3  16,1024,3
-        feature:b,c,n             16,64,1024
+        '''
+        x_global:b,n,c
+        group_points
+        x_local:b,c,n
+        normal_local
+        feature:b,c,n
 
         '''
-        B, N, _= x_local.shape    # [16,1024,3]
+        B, N, _= x_local.shape
         if self.first == True:
-            group_points = get_graph_feature(group_points,self.k) # [16,1024,24,6]
+            group_points = get_graph_feature(group_points,self.k)
             new_x_group = x_global
         else :
-            group_points = self.extract_feat(group_points)  # [16,16,1024]
-            new_x_group, group_points = self.grouper(x_global,group_points) # [16,1024,3] [16,1024,24,16]
+            group_points = self.extract_feat(group_points)
+            new_x_group, group_points = self.grouper(x_global,group_points)
 
-        # [16,1024,3] [16,1024,3] [16,1024,24,22] [16,1024,24]
+
         new_x, new_normal,TIF_feature,idx_order = sample_and_group(x_local, normal_local, self.n_sample, self.k)
-        TIF_feature = TIF_feature.contiguous() # [16,512,24,14]
+        TIF_feature = TIF_feature.contiguous()
 
         if feature is not None: 
             if idx_order is not None:
-                grouped_feature = index_points_feature(feature.transpose(2,1), idx_order)  # [16,512,24,32]
+                grouped_feature = index_points_feature(feature.transpose(2,1), idx_order)
             else:
                 grouped_feature = feature.view(B, 1, N, -1)
-            new_feature = torch.cat([TIF_feature, grouped_feature, group_points], dim=-1).permute(0,3,2,1)   # [16,64+22+16]
+            new_feature = torch.cat([TIF_feature, grouped_feature, group_points], dim=-1).permute(0,3,2,1)
         else:
-            new_feature = torch.cat([TIF_feature, group_points], dim=-1).permute(0,3,2,1) # [16,22+6,24,1024]
-        group_points_max = torch.max(group_points, dim=2)[0].transpose(2,1)  # [16,6,1024]
+            new_feature = torch.cat([TIF_feature, group_points], dim=-1).permute(0,3,2,1)
+        group_points_max = torch.max(group_points, dim=2)[0].transpose(2,1)
         new_points = self.feature_fusion(new_feature)
-        return new_x_group, group_points, group_points_max, new_x, new_normal, new_points # [16,1024,3] [16,6,1024] [16,1024,3] [16,1024,3] [16,64,1024]
+        return new_x_group, group_points, group_points_max, new_x, new_normal, new_points
 
 class feature_fusion_cls(nn.Module):
     def __init__(self, out_c=16,embed_channel=0,out_channel=64,gp=2):
@@ -397,14 +389,14 @@ class feature_fusion_cls(nn.Module):
         self.Spatial_attentione = G_Transformer(channels=out_channel,gp=gp)
         self.Pos=ResidualMLP(out_channel,mode='1d')
     def forward(self, x):
-        new_feature = self.conv(x) # [16,64,24,512] 
-        new_feature = self.Pre(new_feature) # [16,64,24,512] 
-        Pre_feature = torch.max(new_feature, dim=2)[0] # [16,64,1024]
-        channel_att_feature=self.Channel_attention(Pre_feature) # [16,64,1024] 
-        spatial_att_feature=self.Spatial_attentione(Pre_feature)# [16,64,1024]
-        new_feature=channel_att_feature+spatial_att_feature  # [16,64,1024]
-        Pos_feature=self.Pos(new_feature) # [16,64,1024]
-        new_points = Pos_feature + Pre_feature # [16,64,1024] 
+        new_feature = self.conv(x)
+        new_feature = self.Pre(new_feature)
+        Pre_feature = torch.max(new_feature, dim=2)[0]
+        channel_att_feature=self.Channel_attention(Pre_feature)
+        spatial_att_feature=self.Spatial_attentione(Pre_feature)
+        new_feature=channel_att_feature+spatial_att_feature
+        Pos_feature=self.Pos(new_feature)
+        new_points = Pos_feature + Pre_feature
         return new_points
 
 
@@ -441,14 +433,14 @@ class feature_fusion_seg(nn.Module):
         self.Spatial_attentione = G_Transformer(channels=out_channel1,gp=gp)
         self.Pos=ResidualMLP(out_channel1,mode='1d')
     def forward(self, x, feature):
-        new_feature = self.conv1(x) # [16,64,24,512] 
-        new_feature = self.Pre(new_feature) # [16,64,24,512] 
-        Pre_feature = torch.max(new_feature, dim=2)[0] # [16,64,1024]
-        channel_att_feature=self.Channel_attention(Pre_feature) # [16,64,1024] 
-        spatial_att_feature=self.Spatial_attentione(Pre_feature)# [16,64,1024]
-        new_feature=channel_att_feature+spatial_att_feature  # [16,64,1024]
-        Pos_feature=self.Pos(new_feature) # [16,64,1024]
-        new_points = Pos_feature + Pre_feature # [16,64,1024]
+        new_feature = self.conv1(x)
+        new_feature = self.Pre(new_feature)
+        Pre_feature = torch.max(new_feature, dim=2)[0]
+        channel_att_feature=self.Channel_attention(Pre_feature)
+        spatial_att_feature=self.Spatial_attentione(Pre_feature)
+        new_feature=channel_att_feature+spatial_att_feature
+        Pos_feature=self.Pos(new_feature)
+        new_points = Pos_feature + Pre_feature
         result = torch.cat([new_points, feature],dim=1)
         result = self.conv2(result)
         return result
@@ -473,10 +465,10 @@ def index_points_feature(points, idx):
     """
 
     Input:
-        points: input points data, [B, N, C] # [16,1024,64] [16,512,256]
-        idx: sample index data, [B, S,K] # [16,512,24]  [16,256,24]
+        points: input points data, [B, N, C]
+        idx: sample index data, [B, S,K] 
     Return:
-        new_points:, indexed points data, [B, S, K,C] [16,512,24,64] [16,256,24,256]
+        new_points:, indexed points data, [B, S, K,C]
     """
     B = points.shape[0]
     view_shape = list(idx.shape)
@@ -518,7 +510,7 @@ class ResidualMLP(nn.Module):
             outputs = self.act(self.net2(self.net1(inputs) + inputs))
         return outputs
     
-# 注意力
+
 class ECALayer(nn.Module):
     def __init__(self, channels, gamma=2, b=1):
         super().__init__()
@@ -543,28 +535,6 @@ class ECALayer(nn.Module):
         # y is (batch_size, channels) tensor
         # braodcast multiplication
         x=x*y
-        return x
-
-# 轻量化ECA，有待考察
-class LightweightECALayer(nn.Module):
-    def __init__(self, channels, gamma=2, b=1):
-        super().__init__()
-        t = int(abs((np.log2(channels) + b) / gamma))
-        k_size = t if t % 2 else t + 1
-        self.conv_avg = nn.Conv1d(1, 1, kernel_size=k_size,
-                                  padding=(k_size - 1) // 2, bias=False, groups=1)
-        self.sigmoid = nn.Sigmoid()
-        
-    def forward(self, x):
-        # 全局平均池化
-        y_sparse_avg = torch.mean(x, dim=2, keepdim=True)
-        # 1D 深度可分离卷积
-        y_avg = self.conv_avg(y_sparse_avg.transpose(-1, -2)
-                      ).transpose(-1, -2).squeeze(-1)
-        # 激活函数
-        y = self.sigmoid(y_avg)
-        # 广播乘法
-        x = x * y.unsqueeze(-1)
         return x
 
 class G_Transformer(nn.Module):
@@ -600,59 +570,13 @@ class G_Transformer(nn.Module):
         attn = attn / (1e-9 + attn.sum(dim=1, keepdims=True))
         x_r = torch.matmul(x_v, attn)
         #x_r = self.act(self.after_norm(self.trans_conv(x_r)))
-        x_r = self.act(self.after_norm(self.trans_conv(x-x_r))) # 模仿pct
+        x_r = self.act(self.after_norm(self.trans_conv(x-x_r)))
         x = x + x_r
         return x.contiguous()
 
-    
-
-# class Point_Spatial_Attention(nn.Module): # attention模块
-#     def __init__(self, in_dim):
-#         super(Point_Spatial_Attention, self).__init__()
-
-#         self.bn1 = nn.BatchNorm1d(64)
-#         self.bn2 = nn.BatchNorm1d(16)
-#         self.bn3 = nn.BatchNorm1d(16)
-#         self.bn4 = nn.BatchNorm1d(in_dim)
-        
-#         self.mlp = nn.Sequential(nn.Conv1d(in_channels=3, out_channels=64, kernel_size=1, bias=False),
-#                                 self.bn1,
-#                                 nn.ReLU(),
-                                
-#                                 nn.Conv1d(in_channels=64, out_channels=128, kernel_size=1, bias=False))
-#         self.query_conv = nn.Sequential(nn.Conv1d(in_channels=128, out_channels=16, kernel_size=1, bias=False),
-#                                         self.bn2,
-#                                         nn.ReLU())
-                                        
-#         self.key_conv = nn.Sequential(nn.Conv1d(in_channels=128, out_channels=16, kernel_size=1, bias=False),
-#                                         self.bn3,
-#                                         nn.ReLU())
-                                        
-#         self.value_conv = nn.Sequential(nn.Conv1d(in_channels=128, out_channels=in_dim, kernel_size=1, bias=False),
-#                                         self.bn4,
-#                                         nn.ReLU())
 
 
-#         self.alpha = nn.Parameter(torch.zeros(1))
-#         self.adaptive_weights = nn.Parameter(torch.ones(in_dim)) # 增加可学习权重
-#         self.offset = nn.Parameter(torch.zeros(1))
-#         self.softmax  = nn.Softmax(dim=-1)
-        
-#     def forward(self,x):
-#         feat = self.mlp(x+self.offset) # [B, 128, 1024]  # 增加一个可偏移量
-#         proj_query = self.query_conv(feat) # [B, 16, 1024]
-#         proj_key = self.key_conv(feat).permute(0, 2, 1) # [B, 1024, 16]
-#         similarity_mat = self.softmax(torch.bmm(proj_key, proj_query)) # [B, 1024, 1024]
-
-#         proj_value = self.value_conv(feat) # [B, 3, 1024]
-
-#         out = torch.bmm(proj_value * self.adaptive_weights.unsqueeze(0).unsqueeze(2), similarity_mat.permute(0, 2, 1))  # 增加可学习权重
-#         #out = torch.bmm(proj_value, similarity_mat.permute(0, 2, 1))
-#         out = self.alpha*out + x
-#         return out
-
-
-class Point_Spatial_Attention(nn.Module): # attention模块
+class Point_Spatial_Attention(nn.Module): # attention
     def __init__(self, in_dim):
         super(Point_Spatial_Attention, self).__init__()
 
@@ -688,9 +612,8 @@ class Point_Spatial_Attention(nn.Module): # attention模块
         
         similarity_mat = similarity_mat / (1e-9+similarity_mat.sum(dim=1, keepdims=True)) 
 
-        proj_value = self.value_conv(feat) # [B, 3, 1024]
-        #out = torch.bmm(proj_value, similarity_mat.permute(0, 2, 1)) # [b,3,1024]  原文
-        out = proj_value@similarity_mat # [b,3,1024]
+        proj_value = self.value_conv(feat)
+        out = proj_value@similarity_mat
         out = self.alpha*out + x 
         return out
 
@@ -852,14 +775,13 @@ def compute_LRA_one(group_xyz, weighting=False):
     return LRA # B N 3
 
 def order_index(xyz, new_xyz, new_norm, idx):
-    # 根据每个点在平面上的投影方向与参考向量的夹角排序
     epsilon=1e-7
     B, S, C = new_xyz.shape
     nsample = idx.shape[2]
     grouped_xyz = index_points(xyz, idx)
     grouped_xyz_local = grouped_xyz - new_xyz.view(B, S, 1, C)  # centered
 
-    # project and order
+
     dist_plane = torch.matmul(grouped_xyz_local, new_norm)
     proj_xyz = grouped_xyz_local - dist_plane*new_norm.view(B, S, 1, C)
     proj_xyz_length = torch.norm(proj_xyz, dim=-1, keepdim=True)
@@ -993,9 +915,8 @@ def Ri_feature_LR_Risur(xyz, norm, new_xyz, new_norm, idx, group_all=False):
     return ri_feat, idx_ordered
 
 
-def sample_and_group(x, norm, n_points, k): # [16,1024,3] [16,1024,3] 
-    new_x, new_norm = knn_sample_xyz_normal(x, norm, n_points) #[16,512,3] [16,512,3]
-    idx = knn_point(k, x, new_x) # [16,512,24]
-    TIF_feature, idx_order = Ri_feature_LR_Risur(x, norm, new_x, new_norm, idx) # [16,1024,24,14] [16,1024,24]
-    #TIF_feature = TIF_feature.permute(0,3,2,1).contiguous() # [16,14,24,1024]
-    return new_x, new_norm, TIF_feature, idx_order  # [16,512,3] [16,512,3] [16,512,24,14] [16,512,24]
+def sample_and_group(x, norm, n_points, k):
+    new_x, new_norm = knn_sample_xyz_normal(x, norm, n_points)
+    idx = knn_point(k, x, new_x)
+    TIF_feature, idx_order = Ri_feature_LR_Risur(x, norm, new_x, new_norm, idx)
+    return new_x, new_norm, TIF_feature, idx_order

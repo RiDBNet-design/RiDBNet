@@ -26,21 +26,21 @@ class get_model(nn.Module):
             nn.Linear(128, num_category)
         )
     def forward(self, x):
-        if self.use_normals:      # 
-            normal = x[:, 3:, :]  # [16,3,1024]
-            x = x[:, :3, :]       #[16,3,1024]
+        if self.use_normals:      
+            normal = x[:, 3:, :]  
+            x = x[:, :3, :]
         else:
             # compute the LRA and use as normal
             normal = None
-        batch_size = x.size(0)    # [B,3,1024]
-        formal_x = x.transpose(2,1) # [16,1024,3]
-        x_global = global_transform(x, 32, self.if_train)  # [16,3,1024]
-        x_global = self.attt(x_global)   # [16,3,1024]
+        batch_size = x.size(0)
+        formal_x = x.transpose(2,1)
+        x_global = global_transform(x, 32, self.if_train)
+        x_global = self.attt(x_global)
 
-        x_global,_,group_points_max,x,normal,new_points = self.sc0(x_global.transpose(2,1),x_global,formal_x,normal.transpose(2,1),None) # [16,1024,3] [16,6,1024] [16,1024,3] [16,1024,3] [16,64,1024]
-        x_global,_,group_points_max,x,normal,new_points = self.sc1(x_global,group_points_max,x,normal,new_points) # [16,512,3] [16,32,512] [16,3,512] [16,3,512] [16,64,512]
-        x_global,_,group_points_max,x,normal,new_points = self.sc2(x_global,group_points_max,x,normal,new_points) # [16,256,3] [16,64,256] [16,3,256] [16,3,256] [16,128,256]
-        x_global,_,group_points_max,x,normal,new_points = self.sc3(x_global,group_points_max,x,normal,new_points) # [16,128,3] [16,128,128] [16,3,128] [16,3,128] [16,256,128]
-        result = F.adaptive_max_pool1d(new_points, 1).view(batch_size, -1) #[16,256]
+        x_global,_,group_points_max,x,normal,new_points = self.sc0(x_global.transpose(2,1),x_global,formal_x,normal.transpose(2,1),None) # [32,1024,3] [32,6,1024] [32,1024,3] [32,1024,3] [32,64,1024]
+        x_global,_,group_points_max,x,normal,new_points = self.sc1(x_global,group_points_max,x,normal,new_points) 
+        x_global,_,group_points_max,x,normal,new_points = self.sc2(x_global,group_points_max,x,normal,new_points) 
+        x_global,_,group_points_max,x,normal,new_points = self.sc3(x_global,group_points_max,x,normal,new_points) 
+        result = F.adaptive_max_pool1d(new_points, 1).view(batch_size, -1)
         result = self.classifier(result)
         return result, new_points

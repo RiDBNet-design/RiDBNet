@@ -25,27 +25,27 @@ class get_model(nn.Module):
             nn.Conv1d(128, num_category, 1)
         )
     def forward(self, x, cls_label):
-        if self.use_normals:      # 
-            normal = x[:, 3:, :]  # [16,3,1024]
-            x = x[:, :3, :]       #[16,3,1024]
+        if self.use_normals:
+            normal = x[:, 3:, :]
+            x = x[:, :3, :]
         else:
             # compute the LRA and use as normal
             normal = None
-        batch_size, _, N = x.size()   # [B,3,1024]
-        formal_x = x.transpose(2,1) # [16,1024,3]
-        x_global = global_transform(x, 32, self.if_train)  # [16,3,1024]
-        x_global = self.attt(x_global).transpose(2,1).contiguous()   # [16,3,1024]
+        batch_size, _, N = x.size()
+        formal_x = x.transpose(2,1)
+        x_global = global_transform(x, 32, self.if_train)
+        x_global = self.attt(x_global).transpose(2,1).contiguous()
         group_points0 = get_graph_feature(x_global.transpose(2,1),20)
         fpsx_idx = furthest_point_sample(x_global,512).long()
         x_global = index_points(x_global,fpsx_idx).transpose(2,1)
 
 
 
-        x_global1,group_points1,group_points_max1,x1,normal1,new_points1 = self.sc0(x_global.transpose(2,1),x_global,formal_x,normal.transpose(2,1),None) # [16,1024,3] [16,6,1024] [16,1024,3] [16,1024,3] [16,64,1024]
-        x_global2,group_points2,group_points_max2,x2,normal2,new_points2 = self.sc1(x_global1,group_points_max1,x1,normal1,new_points1) # [16,512,3] [16,32,512] [16,3,512] [16,3,512] [16,64,512]
-        x_global3,group_points3,group_points_max3,x3,normal3,new_points3 = self.sc2(x_global2,group_points_max2,x2,normal2,new_points2) # [16,256,3] [16,64,256] [16,3,256] [16,3,256] [16,128,256]
-        x_global4,group_points4,group_points_max4,x4,normal4,new_points4 = self.sc3(x_global3,group_points_max3,x3,normal3,new_points3) # [16,128,3] [16,128,128] [16,3,128] [16,3,128] [16,256,128]
- 
+        x_global1,group_points1,group_points_max1,x1,normal1,new_points1 = self.sc0(x_global.transpose(2,1),x_global,formal_x,normal.transpose(2,1),None)
+        x_global2,group_points2,group_points_max2,x2,normal2,new_points2 = self.sc1(x_global1,group_points_max1,x1,normal1,new_points1)
+        x_global3,group_points3,group_points_max3,x3,normal3,new_points3 = self.sc2(x_global2,group_points_max2,x2,normal2,new_points2)
+        x_global4,group_points4,group_points_max4,x4,normal4,new_points4 = self.sc3(x_global3,group_points_max3,x3,normal3,new_points3)
+
         new_points5 = self.sc4(x4,normal4,x3,normal3,new_points4,new_points3,group_points3)
         new_points6 = self.sc5(x3,normal3,x2,normal2,new_points5,new_points2,group_points2)
         new_points7 = self.sc6(x2,normal2,x1,normal1,new_points6,new_points1,group_points1)

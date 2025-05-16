@@ -88,7 +88,6 @@ def main(args):
     num_class = args.num_category
     model_name = os.listdir(experiment_dir + '/logs')[0].split('.')[0]
     model = importlib.import_module(model_name)
-    #model = importlib.import_module('risurconv_cls')
 
     classifier = model.get_model(num_class, 1)
     classifier = classifier.cuda()

@@ -96,7 +96,7 @@ def main(args):
         raise NotImplementedError()
 
     test_dataset = ScanObjectNN(root=data_path, args=args, split='test')
-    testDataLoader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=0)
+    testDataLoader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8)
 
     '''MODEL LOADING'''
     num_class = args.num_category

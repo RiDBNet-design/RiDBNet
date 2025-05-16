@@ -201,9 +201,6 @@ def main(args):
             global_step += 1
         scheduler.step()
         train_instance_acc = np.mean(mean_correct)
-        if epoch==300: # Warm up, a popular transformer training scheme
-            for param_group in optimizer.param_groups:
-                param_group["lr"] = args.learning_rate
         
         log_string('Train Instance Accuracy: %f' % train_instance_acc)
         log_string('Train loss: %f' % loss)

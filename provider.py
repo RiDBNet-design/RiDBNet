@@ -72,10 +72,8 @@ def rotate_point_cloud_xyz(batch_data):
     rotated_data = np.zeros(batch_data.shape, dtype=np.float32)
     
     for k in range(batch_data.shape[0]):
-        # 随机选择绕 X, Y, Z 轴的旋转角度
         rotation_angles = np.random.uniform(size=3) * 2 * np.pi
 
-        # 计算每个轴的旋转矩阵
         cosval_x, sinval_x = np.cos(rotation_angles[0]), np.sin(rotation_angles[0])
         cosval_y, sinval_y = np.cos(rotation_angles[1]), np.sin(rotation_angles[1])
         cosval_z, sinval_z = np.cos(rotation_angles[2]), np.sin(rotation_angles[2])
@@ -92,7 +90,6 @@ def rotate_point_cloud_xyz(batch_data):
                                       [sinval_z, cosval_z, 0],
                                       [0, 0, 1]])
         
-        # 组合旋转矩阵
         rotation_matrix = np.dot(rotation_matrix_z, np.dot(rotation_matrix_y, rotation_matrix_x))
         
         shape_pc = batch_data[k, ...]
