@@ -1,7 +1,7 @@
 # RiDBNet: Rotation-invariant dual-branch hierarchical network for 3D point cloud classification and segmentation
 
 ### Installation
-This repo provides the RiDB-Net source codes, which had been tested with Python 3.8.19, PyTorch 1.12.0, CUDA 11.3 on Ubuntu 20.04.  
+This repo provides the RiDBNet source codes, which had been tested with Python 3.8.19, PyTorch 1.12.0, CUDA 11.3 on Ubuntu 20.04.  
 ```
 # install cpp extensions, the pointnet++ library
 cd ./pointnet2_batch
