@@ -1,4 +1,4 @@
-# Dual-Branch Hierarchical Feature Learning for Robust Rotation-Invariant Point Cloud Analysis
+# RiDBNet: Rotation-invariant dual-branch hierarchical network for 3D point cloud classification and segmentation
 
 ### Installation
 This repo provides the RiDB-Net source codes, which had been tested with Python 3.8.19, PyTorch 1.12.0, CUDA 11.3 on Ubuntu 20.04.  
@@ -21,7 +21,7 @@ We perform classification on ModelNet40 and ScanObjectNN respectively.
 
 Download alignment **ModelNet** [here](https://shapenet.cs.stanford.edu/media/modelnet40_normal_resampled.zip) and save in `../data/modelnet40_normal_resampled/`. Follow the instructions of [PointNet++(Pytorch)](https://github.com/yanx27/Pointnet_Pointnet2_pytorch) to prepare the data. Specifically, please use `--process_data` to preprocess the data, and move the processed data to `../data/modelnet40_preprocessed/`.(**Note**: the `data/` folder is outside the project folder)
 
-To train a RiDB-Net model to classify shapes in the ModelNet40 dataset:
+To train a RiDBNet model to classify shapes in the ModelNet40 dataset:
 ```
 python3 train_classification_modelnet40.py
 
@@ -31,7 +31,7 @@ Download the **ScanObjectNN** [here](https://hkust-vgd.github.io/scanobjectnn/) 
 
 Training on the hardest variant **PB_T50_RS**:
 ```
-python3 train_classification_scanobj.py --data_type 'hardest'
+python3 train_classification_scanobjectnn.py --data_type 'hardest'
 ```
 
 ### Segmentation
