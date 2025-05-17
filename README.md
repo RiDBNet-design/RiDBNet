@@ -42,7 +42,7 @@ Download alignment **ShapeNet** [here](https://shapenet.cs.stanford.edu/media/sh
 
 Training:
 ```
-python3 train_partseg.py
+python3 train_partseg_shapenet.py
 ```
 
 ## License
