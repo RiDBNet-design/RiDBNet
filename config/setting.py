@@ -48,5 +48,5 @@ def scheduler_set(args,optimizer,epoch):
     if args.scheduler == 'CosineRestart':
         scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=epoch, eta_min=1e-9)
     if args.scheduler == 'Consine':
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epoch, eta_min=args.learning_rate)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epoch, eta_min=args.learning_rate/100)
     return scheduler
