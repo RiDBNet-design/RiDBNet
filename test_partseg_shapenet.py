@@ -37,7 +37,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=32, help='batch size in testing')
     parser.add_argument('--gpu', type=str, default='0', help='specify gpu device')
     parser.add_argument('--num_point', type=int, default=2048, help='point Number')
-    parser.add_argument('--log_dir', type=str, default='5_15_10_1gpu', help='experiment root')
+    parser.add_argument('--log_dir', type=str, default='', help='experiment root')
     parser.add_argument('--normal', action='store_true', default=True, help='use normals')
     parser.add_argument('--num_votes', type=int, default=3, help='aggregate segmentation scores with voting')
     return parser.parse_args()

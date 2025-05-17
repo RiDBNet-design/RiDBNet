@@ -47,7 +47,7 @@ def parse_args():
     parser.add_argument('--learning_rate', default=0.001, type=float, help='initial learning rate')
     parser.add_argument('--gpu', type=str, default='0', help='specify GPU devices')
     parser.add_argument('--optimizer', type=str, default='Adam', help='Adam or SGD')
-    parser.add_argument('--log_dir', type=str, default='5_15_10_1gpu', help='log path')
+    parser.add_argument('--log_dir', type=str, default='', help='log path')
     parser.add_argument('--decay_rate', type=float, default=1e-4, help='weight decay')
     parser.add_argument('--npoint', type=int, default=2048, help='point Number')
     parser.add_argument('--normal', type=bool, default=True, help='use normals')

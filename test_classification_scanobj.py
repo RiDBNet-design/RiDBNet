@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=32, help='batch size in training')
     parser.add_argument('--num_category', default=15, type=int, choices=[10, 40],  help='training on ModelNet10/40')
     parser.add_argument('--num_point', type=int, default=1024, help='Point Number')
-    parser.add_argument('--log_dir', type=str, default='debug2', help='Experiment root')
+    parser.add_argument('--log_dir', type=str, default='', help='Experiment root')
     parser.add_argument('--use_normals', action='store_true', default=True, help='use normals')
     parser.add_argument('--data_type', type=str, default='hardest', help='data type')
     parser.add_argument('--use_uniform_sample', action='store_true', default=True, help='use uniform sampiling')

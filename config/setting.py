@@ -1,9 +1,3 @@
-'''
-author: Changsheng Zheng
-file: ModelNet40.py
-Data: 2025/4/25
-'''
-
 import torch
 import torch.nn.functional as F
 

@@ -45,7 +45,7 @@ def parse_args():
                         help='So3')
 
 
-    parser.add_argument('--log_dir', type=str, default='debug', 
+    parser.add_argument('--log_dir', type=str, default='', 
                         help='experiment root')
     parser.add_argument('--decay_rate', type=float, default=1e-4, 
                         help='decay rate')
@@ -53,7 +53,7 @@ def parse_args():
                         help='use normals')
     parser.add_argument('--process_data', action='store_true', default=True, 
                         help='save data offline')
-    parser.add_argument('--use_uniform_sample', action='store_true', default=False, 
+    parser.add_argument('--use_uniform_sample', action='store_true', default=True, 
                         help='use uniform sampiling')
     parser.add_argument('--scheduler', type=str, default='Consine', 
                         help='scheduler for training')

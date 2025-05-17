@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--num_point', type=int, default=1024, help='Point Number')
     parser.add_argument('--data_type', type=str, default='hardest', help='data type')
     parser.add_argument('--optimizer', type=str, default='Adam', help='optimizer for training')
-    parser.add_argument('--log_dir', type=str, default='debug2', help='experiment root')
+    parser.add_argument('--log_dir', type=str, default='', help='experiment root')
     parser.add_argument('--decay_rate', type=float, default=1e-4, help='decay rate')
     parser.add_argument('--use_uniform_sample', type=bool, default=True, help='use uniform sampiling')
     parser.add_argument('--scheduler', type=str, default='Consine', 
